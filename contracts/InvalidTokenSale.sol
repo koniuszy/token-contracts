@@ -9,7 +9,7 @@ import "./Ownable.sol";
 /*
  * @dev Allows to create allocations for token sale.
  */
-contract PresalePublic is Ownable {
+contract InvalidTokenSale is Ownable {
     uint256 constant EVERYONE_ALLOCATION_DELAY = 1 hours;
     uint256 constant OWNER_PAYOUT_DELAY = 30 days;
 
