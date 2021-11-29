@@ -20,11 +20,7 @@ contract('InvalidTokenSale', ([owner, ...accounts]) => {
     const initialBalances = (await Promise.all(allowedAccounts.map(a => web3.eth.getBalance(a)))).map(toBn);
 
     const value = ETHER;
-    await Promise.all(
-      allowedAccounts.map(a =>
-        instance.allocate({ from: a, value }).then(() => instance.allowedParticipants().then(console.log))
-      )
-    );
+    await Promise.all(allowedAccounts.map(a => instance.allocate({ from: a, value })));
 
     const gasPriceList = await Promise.all(
       allowedAccounts.map(async (a, index) => {
