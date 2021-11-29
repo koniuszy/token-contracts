@@ -20,7 +20,11 @@ contract('InvalidTokenSale', ([owner, ...accounts]) => {
     const initialBalances = (await Promise.all(allowedAccounts.map(a => web3.eth.getBalance(a)))).map(toBn);
 
     const value = ETHER;
-    await Promise.all(allowedAccounts.map(a => instance.allocate({ from: a, value })));
+    await Promise.all(
+      allowedAccounts.map(a =>
+        instance.allocate({ from: a, value }).then(() => instance.allowedParticipants().then(console.log))
+      )
+    );
 
     const gasPriceList = await Promise.all(
       allowedAccounts.map(async (a, index) => {
@@ -31,7 +35,6 @@ contract('InvalidTokenSale', ([owner, ...accounts]) => {
 
     const totalAllocated = await instance.totalAllocated();
     const allocationsCount = toBn(allowedAccounts.length);
-    console.log(totalAllocated.toString());
     assert.equal(totalAllocated.toString(), value.mul(allocationsCount).toString(), 'the total allocation is wrong');
 
     const [firstAllocationMayBeCheaper, ...theSameGasList] = gasPriceList;
