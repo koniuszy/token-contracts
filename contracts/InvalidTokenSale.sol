@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.10;
+pragma solidity ^0.8.0;
 
 // >>>>>>>>>> !IMPORTANT! <<<<<<<<<<<
 // this is an invalid token sale contract which requrie more gas with each allocation, why though ?
@@ -35,7 +35,7 @@ contract InvalidTokenSale is Ownable {
      * @param allowedParticipantsValue List of addresses allowed to participate.
      * @param isEveryoneAllowedToParticipateAfterDelayValue Decides if everyone should be allowed to participate after delay.
      */
-    constructor(
+    constructor (
         address[] memory allowedParticipantsValue,
         bool isEveryoneAllowedToParticipateAfterDelayValue
     ) {
@@ -200,9 +200,11 @@ contract InvalidTokenSale is Ownable {
         view
         returns (bool)
     {
+
         if (
             _isEveryoneAllowedToParticipateAfterDelay &&
-            _wasStarted &&
+            _wasStarted 
+            && 
             block.timestamp >= (_saleStart + EVERYONE_ALLOCATION_DELAY)
         ) {
             return true;
