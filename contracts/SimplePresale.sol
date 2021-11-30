@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/token/ERC20";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract SimplePresale is Ownable, Pausable {
   using Address for address;

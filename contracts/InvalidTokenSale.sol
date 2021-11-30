@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 // this is an invalid token sale contract which requrie more gas with each allocation, why though ?
 // i managed to fix the above by performing checks on mapping instead of array
 
-import "@openzeppelin/contracts/token/ERC20";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /*
  * @dev Allows to create allocations for token sale.
