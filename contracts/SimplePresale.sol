@@ -43,7 +43,7 @@ contract SimplePresale is Ownable, Pausable {
   function withdraw() external onlyOwner {
     require(_raisedAmount >= TARGET_AMOUNT || paused(), "Cannot withdraw yet");
 
-    Address.sendValue(msg.sender, address(this).balance);
+    Address.sendValue(payable(msg.sender), address(this).balance);
   }
 
   function allocation(address participant) public view returns (uint256) {
