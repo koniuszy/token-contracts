@@ -34,9 +34,6 @@ contract Token is ERC20Burnable, Ownable {
     return owner();
   }
 
-  /**
-   * @dev Returns the number of decimals used to get its user representation.
-   */
   function decimals() public pure override returns (uint8) {
     return 4;
   }
