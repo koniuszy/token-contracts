@@ -1,4 +1,4 @@
-const InvalidTokenSale = artifacts.require('InvalidTokenSale');
+const InvalidPresale = artifacts.require('InvalidPresale');
 
 function toEther(v: BN) {
   return web3.utils.fromWei(v, 'ether');
@@ -8,13 +8,13 @@ function toBn(v: number | string) {
   return web3.utils.toBN(v);
 }
 
-contract('InvalidTokenSale', ([owner, ...accounts]) => {
+contract('InvalidPresale', ([owner, ...accounts]) => {
   const ETHER = toBn(web3.utils.toWei('1', 'ether'));
 
   it('should charge each address for allocation the same gas amount', async () => {
     const allowedAccounts = [...accounts];
     allowedAccounts.pop();
-    const instance = await InvalidTokenSale.deployed();
+    const instance = await InvalidPresale.deployed();
     await instance.startSale(ETHER, ETHER + '000', ETHER + '00000', ETHER + '0000');
     await instance.addAllowedParticipants(allowedAccounts);
     const initialBalances = (await Promise.all(allowedAccounts.map(a => web3.eth.getBalance(a)))).map(toBn);

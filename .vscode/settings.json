@@ -7,5 +7,6 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
   },
-  "solidity.compileUsingRemoteVersion": "latest"
+  "solidity.compileUsingRemoteVersion": "latest",
+  "cSpell.words": ["Presale"]
 }

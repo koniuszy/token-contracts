@@ -1,5 +1,5 @@
-const InvalidTokenSaleContract = artifacts.require('InvalidTokenSale');
+const InvalidPresaleContract = artifacts.require('InvalidPresale');
 
 module.exports = function (deployer: Truffle.Deployer) {
-  deployer.deploy(InvalidTokenSaleContract, [], false);
+  deployer.deploy(InvalidPresaleContract, [], false);
 };

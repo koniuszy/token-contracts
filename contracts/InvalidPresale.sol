@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /*
  * @dev Allows to create allocations for token sale.
  */
-contract InvalidTokenSale is Ownable {
+contract InvalidPresale is Ownable {
   uint256 constant EVERYONE_ALLOCATION_DELAY = 1 hours;
   uint256 constant OWNER_PAYOUT_DELAY = 30 days;
 
