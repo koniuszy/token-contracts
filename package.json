@@ -1,7 +1,8 @@
 {
   "scripts": {
     "gen": "yarn typechain --target=truffle-v5 'build/contracts/*.json'",
-    "build": "yarn gen && truffle migrate"
+    "migrate": "yarn truffle migrate && yarn gen",
+    "dev": "yarn truffle develop"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.4.0",

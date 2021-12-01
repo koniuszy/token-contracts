@@ -14,7 +14,7 @@ contract('InvalidTokenSale', ([owner, ...accounts]) => {
   it('should charge each address for allocation the same gas amount', async () => {
     const allowedAccounts = [...accounts];
     allowedAccounts.pop();
-    const instance = await InvalidTokenSale.deployed([], true);
+    const instance = await InvalidTokenSale.deployed();
     await instance.startSale(ETHER, ETHER + '000', ETHER + '00000', ETHER + '0000');
     await instance.addAllowedParticipants(allowedAccounts);
     const initialBalances = (await Promise.all(allowedAccounts.map(a => web3.eth.getBalance(a)))).map(toBn);
