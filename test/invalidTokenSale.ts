@@ -1,10 +1,10 @@
 const InvalidTokenSale = artifacts.require('InvalidTokenSale');
 
-function toEther(v) {
+function toEther(v: BN) {
   return web3.utils.fromWei(v, 'ether');
 }
 
-function toBn(v) {
+function toBn(v: number | string) {
   return web3.utils.toBN(v);
 }
 
