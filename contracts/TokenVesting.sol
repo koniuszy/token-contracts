@@ -6,203 +6,89 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
- * @title TokenVesting
- * @dev Vesting for BEP20 compatible token.
+ * @dev A token holder contract that will allow a beneficiary to extract the
+ * tokens after a given release time.
+ *
+ * Useful for simple vesting schedules like "advisors get all of their tokens
+ * after 1 year".
  */
-contract TokenVesting is Ownable {
+contract TokenTimelock is Ownable {
   using SafeERC20 for IERC20;
-  using SafeMath for uint256;
 
-  bool private _locked;
+  IERC20 public token;
+  uint256[] public withdrawTimeFrames;
+  uint256[] public withdrawPercentagesFrames;
+  address[] public beneficiaryAdresses;
+  mapping(address => uint256) _beneficiaries;
+  mapping(address => uint256) _initialBeneficiares;
 
-  address private _token;
-  uint256 private immutable _endTime;
-  uint256 private immutable _startTime;
-  uint256 private immutable _startPercent;
-
-  mapping(address => uint256) private _currentBalances;
-  mapping(address => uint256) private _initialBalances;
-
-  event TokensReleased(address beneficiary, uint256 amount);
-
-  /**
-   * @dev Configures vesting for specified accounts.
-   * @param startTimeValue Timestamp after which initial amount of tokens is released.
-   * @param endTimeValue Timestamp after which entire amount of tokens is released.
-   * @param startPercentValue Percent of tokens available after initial release.
-   */
-  constructor(
-    uint256 startTimeValue,
-    uint256 endTimeValue,
-    uint8 startPercentValue
-  ) {
+  constructor(uint256[] memory withdrawTimeFrames_, uint256[] memory withdrawPercentagesFrames_) {
+    require(withdrawTimeFrames_.length <= 10, "TokenTimelock: you can set max 10 time frames");
     require(
-      startPercentValue <= 100,
-      "TokenVesting: Percent of tokens available after initial time cannot be greater than 100"
+      withdrawTimeFrames_.length == withdrawPercentagesFrames_.length,
+      "TokenTimelock: relaeseTimeFrames should have as many items as withdrawPercentagesFrames_"
     );
-    require(endTimeValue > startTimeValue, "TokenVesting: End time must be greater than start time");
+    uint256 sum = 0;
+    for (uint256 i = 0; i < withdrawTimeFrames_.length; ++i) {
+      require(withdrawTimeFrames_[i] > block.timestamp, "TokenTimelock: withdraw time is before current time");
+      require(withdrawPercentagesFrames_[i] > 0, "TokenTimelock: percantage value is less than 0");
+      require(withdrawPercentagesFrames_[i] > 100, "TokenTimelock: percantage value is greater than 100");
+      sum += withdrawPercentagesFrames_[i];
+    }
+    require(sum == 100, "TokenTimelock: sum of withdrawPercentagesFrames_ does not equal 100");
 
-    _endTime = endTimeValue;
-    _startTime = startTimeValue;
-    _startPercent = startPercentValue;
+    withdrawTimeFrames = withdrawTimeFrames_;
+    withdrawPercentagesFrames = withdrawPercentagesFrames_;
   }
 
-  /**
-   * @dev Add beneficiaries
-   */
-  function addBeneficiaries(address[] memory beneficiaries, uint256[] memory balances) public onlyOwner {
+  function setToken(IERC20 token_) external onlyOwner {
+    token = token_;
+  }
+
+  function addBeneficiaries(address[] memory beneficiaryAddresses_, uint256[] memory balances_) external onlyOwner {
     require(
-      beneficiaries.length == balances.length,
+      beneficiaryAddresses_.length == balances_.length,
       "TokenVesting: Beneficiaries and amounts must have the same length"
     );
-    require(!isLocked(), "TokenVesting: Contract has already been locked");
 
-    for (uint256 i = 0; i < beneficiaries.length; ++i) {
-      _currentBalances[beneficiaries[i]] = balances[i];
-      _initialBalances[beneficiaries[i]] = balances[i];
+    for (uint256 i = 0; i < beneficiaryAddresses_.length; ++i) {
+      _beneficiaries[beneficiaryAddresses_[i]] = balances_[i];
+      _initialBeneficiares[beneficiaryAddresses_[i]] = balances_[i];
+      beneficiaryAdresses.push(beneficiaryAddresses_[i]);
     }
   }
 
-  /**
-   * @dev Lock the contract
-   */
-  function lock() public onlyOwner {
-    _locked = true;
+  function beneficiaryBalance(address beneficiary_) external view returns (uint256) {
+    return _beneficiaries[beneficiary_];
   }
 
-  /**
-   * @dev Check if contract is locked
-   */
-  function isLocked() public view returns (bool) {
-    return _locked;
+  function beneficiaryInitialBalance(address beneficiary_) external view returns (uint256) {
+    return _initialBeneficiares[beneficiary_];
   }
 
-  /**
-   * @dev Sends all releases tokens (if any) to the caller.
-   */
-  function release() public {
-    require(_token != address(0), "TokenVesting: Not configured yet");
-    require(isLocked(), "TokenVesting: Not locked yet");
-    require(block.timestamp >= _startTime, "TokenVesting: Cannot release yet");
-    require(_initialBalances[msg.sender] > 0, "TokenVesting: Invalid beneficiary");
-    require(_currentBalances[msg.sender] > 0, "TokenVesting: Balance was already emptied");
-
-    uint256 amount = withdrawalLimit(msg.sender);
-
-    require(amount > 0, "TokenVesting: Nothing to withdraw at this time");
-    require(_currentBalances[msg.sender] >= amount, "TokenVesting: Invalid amount");
-
-    _currentBalances[msg.sender] = _currentBalances[msg.sender].sub(amount);
-
-    IERC20(_token).safeTransfer(msg.sender, amount);
-
-    emit TokensReleased(msg.sender, amount);
-  }
-
-  /**
-   * @dev Sets token address.
-   * @param tokenValue Token address.
-   */
-  function setToken(address tokenValue) public onlyOwner {
-    require(_token == address(0), "TokenVesting: Token address already set");
-    _token = tokenValue;
-  }
-
-  /**
-   * @dev Returns current balance for given address.
-   * @param beneficiary Address to check.
-   */
-  function currentBalance(address beneficiary) public view returns (uint256) {
-    return _currentBalances[beneficiary];
-  }
-
-  /**
-   * @dev Returns initial balance for given address.
-   * @param beneficiary Address to check.
-   */
-  function initialBalance(address beneficiary) public view returns (uint256) {
-    return _initialBalances[beneficiary];
-  }
-
-  /**
-   * @dev Returns total withdrawn for given address.
-   * @param beneficiary Address to check.
-   */
-  function totalWithdrawn(address beneficiary) public view returns (uint256) {
-    return (_initialBalances[beneficiary].sub(_currentBalances[beneficiary]));
-  }
-
-  /**
-   * @dev Returns withdrawal limit for given address.
-   * @param beneficiary Address to check.
-   */
-  function withdrawalLimit(address beneficiary) public view returns (uint256) {
-    return (amountAllowedToWithdraw(_initialBalances[beneficiary]).sub(totalWithdrawn(beneficiary)));
-  }
-
-  /**
-   * @dev Returns amount allowed to withdraw for given initial initialBalanceValue.
-   * @param initialBalanceValue Initial initialBalanceValue.
-   */
-  function amountAllowedToWithdraw(uint256 initialBalanceValue) public view returns (uint256) {
-    if (initialBalanceValue == 0 || _token == address(0) || block.timestamp < _startTime) {
-      return 0;
+  function beneficiaryAvaibleTokensToWithdraw(address beneficiary_) public view returns (uint256) {
+    require(_beneficiaries[beneficiary_] > 0, "TokenTimelock: your balance is 0");
+    uint256 _avaiblePercentages = 0;
+    for (uint256 i = 0; i < withdrawTimeFrames.length; ++i) {
+      if (withdrawTimeFrames[i] <= block.timestamp) {
+        _avaiblePercentages += withdrawPercentagesFrames[i];
+      }
     }
+    require(_avaiblePercentages > 0, "TokenTimelock: current time is before withdraw time");
 
-    if (block.timestamp >= _endTime) {
-      return initialBalanceValue;
-    }
+    uint256 _withdrawnAmount = _initialBeneficiares[beneficiary_] - _beneficiaries[beneficiary_];
+    uint256 _avaibleAmount = SafeMath.div(SafeMath.mul(_initialBeneficiares[beneficiary_], 100), _avaiblePercentages);
+    require(_avaibleAmount > 0, "TokenTimelock: nothing to withdraw");
 
-    uint256 curTimeDiff = block.timestamp.sub(_startTime);
-    uint256 maxTimeDiff = _endTime.sub(_startTime);
-
-    uint256 beginPromile = _startPercent.mul(10);
-    uint256 otherPromile = curTimeDiff.mul(uint256(1000).sub(beginPromile)).div(maxTimeDiff);
-    uint256 promile = beginPromile.add(otherPromile);
-
-    if (promile >= 1000) {
-      return initialBalanceValue;
-    }
-
-    return promile.mul(initialBalanceValue).div(1000);
+    return SafeMath.sub(_avaibleAmount, _withdrawnAmount);
   }
 
-  /**
-   * @dev Returns token address.
-   */
-  function token() public view returns (address) {
-    return _token;
-  }
+  function withdraw(address beneficiary_) external {
+    require(token.balanceOf(address(this)) > 0, "TokenTimelock: no tokens on the vesting contract to withdraw");
+    require(_beneficiaries[beneficiary_] > 0, "TokenTimelock: no tokens assigned to the beneficiary");
 
-  /**
-   * @dev Returns current token balance.
-   */
-  function balance() public view returns (uint256) {
-    if (_token == address(0)) {
-      return 0;
-    }
-
-    return IERC20(_token).balanceOf(address(this));
-  }
-
-  /**
-   * @dev Returns end time.
-   */
-  function endTime() public view returns (uint256) {
-    return _endTime;
-  }
-
-  /**
-   * @dev Returns start time.
-   */
-  function startTime() public view returns (uint256) {
-    return _startTime;
-  }
-
-  /**
-   * @dev Returns start percent.
-   */
-  function startPercent() public view returns (uint256) {
-    return _startPercent;
+    uint256 amount = beneficiaryAvaibleTokensToWithdraw(beneficiary_);
+    _beneficiaries[beneficiary_] = 0;
+    token.safeTransfer(beneficiary_, amount);
   }
 }
